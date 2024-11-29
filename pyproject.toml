@@ -8,8 +8,11 @@ version = "0.1.0"
 description = "Generate thumbnail grid from video folder"
 authors = [{ name = "hvppycoding" }]
 dependencies = [
+    "imageio",
     "opencv-python",
-    "numpy"
+    "numpy",
+    "dlib",
+    "pillow"
 ]
 
 [project.scripts]
