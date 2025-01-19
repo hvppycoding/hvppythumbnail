@@ -44,16 +44,60 @@ def add_filename(frame, filename, padding, timestamp_minutes, timestamp_seconds)
             font = ImageFont.load_default()
 
     # 텍스트 크기 계산 및 파일명 조정
-    text_width, _, _, text_height = draw.textbbox((0, 0), text, font=font)  # textbbox() 함수 사용
+    _x, _y, text_width, text_height = draw.textbbox((0, 0), text, font=font)  # textbbox() 함수 사용
+
     while text_width > max_width:  # 텍스트 너비가 최대 너비보다 크면
         filename = filename[:-1]  # 파일명 마지막 글자 제거
         text = f"{filename}... ({timestamp})"  # 말줄임표 추가
-        text_width, _, _, text_height = draw.textbbox((0, 0), text, font=font)  # 텍스트 너비 다시 계산
+        _x, _y, text_width, text_height = draw.textbbox((0, 0), text, font=font)  # 텍스트 너비 다시 계산
 
     # 텍스트 그리기
     draw.text((5, frame.shape[0]), text, font=font, fill=(255, 255, 255))
 
     return np.array(pil_img)
+  
+def add_metadata_to_image(image, metadata):
+    # PIL 이미지로 변환 후 텍스트 그리기
+    pil_img = Image.fromarray(image)
+    draw = ImageDraw.Draw(pil_img)
+    text = metadata
+    
+    try:
+        font = ImageFont.truetype("malgun.ttf", 13)
+    except:
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/nanum/NanumGothic.ttf", 13)
+        except:
+            font = ImageFont.load_default()
+            
+    max_width = image.shape[1] - 10  # 최대 너비 설정
+    _x, _y, text_width, text_height = draw.textbbox((0, 0), text, font=font)  # 텍스트 크기 계산
+    
+    while text_width > max_width:  # 텍스트 너비가 최대 너비보다 크면
+        metadata = metadata[:-1]  # 파일명 마지막 글자 제거
+        text = f"{metadata}..."  # 말줄임표 추가
+        _x, _y, text_width, text_height = draw.textbbox((0, 0), text, font=font)  # 텍스트 너비 다시 계산
+
+    # 텍스트 위치 계산 (우측 상단)
+    x = image.shape[1] - text_width - 10  # 오른쪽 여백 10 픽셀
+    y = 10  # 위쪽 여백 10 픽셀
+    
+    x0 = x
+    y0 = y
+    x1 = x + text_width
+    y1 = y + text_height
+    # 배경 영역 어둡게 칠하기
+    overlay = Image.new('RGBA', pil_img.size, (0, 0, 0, 0))  # 투명한 이미지 생성
+    draw_overlay = ImageDraw.Draw(overlay)
+    draw_overlay.rectangle([(x0, y0), (x1, y1)], fill=(0, 0, 0, 155))  # 반투명 검정색으로 배경 채우기
+    pil_img = Image.alpha_composite(pil_img.convert('RGBA'), overlay)  # 배경 이미지와 합성
+    
+    draw = ImageDraw.Draw(pil_img)
+    draw.text((x, y), text, font=font, fill=(255, 255, 255))  # 흰색으로 텍스트 그리기
+
+    # 다시 OpenCV 이미지로 변환
+    image = np.array(pil_img)
+    return image
 
 def get_video_duration_seconds(video_path):
     try:
@@ -176,7 +220,7 @@ def resize_image(frame, target_width, target_height):
     return cv2.resize(frame, (new_width, new_height))
   
 class FolderThumbnailCreator:
-  def __init__(self, folder_path, grid_height=3, grid_width=4, capture_height=480, capture_width=480, filename_height=30, nstep_per_capture=5):
+  def __init__(self, folder_path, grid_height=3, grid_width=4, capture_height=480, capture_width=480, filename_height=30, nstep_per_capture=10):
     self.folder_path = folder_path
     self.grid_height = grid_height
     self.grid_width = grid_width
@@ -227,6 +271,16 @@ class FolderThumbnailCreator:
         seconds = int(section_time) % SECONDS_PER_MINUTE
         frame_with_text = add_filename(canvas, video_file.name, self.filename_height, minutes, seconds)
     return frame_with_text
+  
+  def generate_metadata_string(self):
+    total_duration_minutes = int(self.total_duration) // SECONDS_PER_MINUTE
+    total_num_videos = len(self.video_file_duration_pairs)
+    total_size = sum([video_file.stat().st_size for video_file, _ in self.video_file_duration_pairs])
+    total_size_in_mb = total_size / 1024 / 1024
+    if total_size_in_mb >= 1024:
+        total_size_in_gb = total_size_in_mb / 1024
+        return f"#Videos: {total_num_videos}, Total Duration: {total_duration_minutes} min., Total Size: {total_size_in_gb:.1f} GB"
+    return f"#Videos: {total_num_videos}, Total Duration: {total_duration_minutes} min., Total Size: {total_size_in_mb:.1f} MB"
     
   def create_thumbnail(self, output_path):
     frames = []
@@ -239,6 +293,8 @@ class FolderThumbnailCreator:
         rows.append(row)
     
     final_image = np.vstack(rows)
+    
+    final_image = add_metadata_to_image(final_image, self.generate_metadata_string())
     output_path = os.path.abspath(output_path)
     try:
         import imageio
