@@ -1,11 +1,17 @@
 import argparse
 from pathlib import Path
-from .core import create_folder_thumbnail
+from .core import FolderThumbnailCreator
 
 def main():
     parser = argparse.ArgumentParser(description='비디오 폴더 썸네일 생성기')
     parser.add_argument('folder_path', help='비디오가 있는 폴더 경로')
     parser.add_argument('-o', '--output', help='출력 이미지 경로 (기본: 현재 디렉토리/thumbnail.jpg)')
+    parser.add_argument("--grid_height", type=int, default=3, help="썸네일 그리드 높이")
+    parser.add_argument("--grid_width", type=int, default=4, help="썸네일 그리드 너비")
+    parser.add_argument("--capture_height", type=int, default=480, help="캡처 이미지 높이")
+    parser.add_argument("--capture_width", type=int, default=480, help="캡처 이미지 너비")
+    parser.add_argument("--filename_height", type=int, default=30, help="파일 이름 높이")
+    parser.add_argument("--nstep_per_capture", type=int, default=5, help="캡처 빈도")
     
     args = parser.parse_args()
     
@@ -16,10 +22,17 @@ def main():
     
     output_path = args.output if args.output else Path.cwd() / "thumbnail.jpg"
     
-    if create_folder_thumbnail(folder_path, output_path):
-        print(f"썸네일 생성 완료: {output_path}")
-    else:
-        print("오류: 썸네일을 생성할 수 없습니다.")
+    try:
+        c = FolderThumbnailCreator(folder_path, 
+                                   grid_height=args.grid_height, 
+                                   grid_width=args.grid_width, 
+                                   capture_height=args.capture_height, 
+                                   capture_width=args.capture_width,
+                                   filename_height=args.filename_height, 
+                                   nstep_per_capture=args.nstep_per_capture)
+        c.create_thumbnail(output_path)
+    except Exception as e:
+        print(f"오류: {e}")
 
 if __name__ == "__main__":
     main()

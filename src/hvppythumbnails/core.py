@@ -214,10 +214,10 @@ class FolderThumbnailCreator:
     video_file, section_time = self.duration_divider.get_video_file_and_section(middle_time)
     frame = self.video_capture_helper.get_frame_from_file(str(video_file), section_time)
     frame = resize_image(frame, self.capture_width, self.capture_height)
-    return frame, str(video_file), section_time
+    return frame, video_file, section_time
   
   def create_thumbnail_for_section(self, section):
-    frame, filename, section_time = self.find_thumbnail_for_section(section)
+    frame, video_file, section_time = self.find_thumbnail_for_section(section)
 
     if frame is not None:
         canvas = np.zeros((self.capture_height, self.capture_width, 3), dtype=np.uint8)
@@ -227,7 +227,7 @@ class FolderThumbnailCreator:
         canvas[y_offset:y_offset+h, x_offset:x_offset+w] = frame
         minutes = int(section_time) // SECONDS_PER_MINUTE
         seconds = int(section_time) % SECONDS_PER_MINUTE
-        frame_with_text = add_filename(canvas, filename, self.filename_height, minutes, seconds)
+        frame_with_text = add_filename(canvas, video_file.name, self.filename_height, minutes, seconds)
     return frame_with_text
     
   def create_thumbnail(self, output_path):
@@ -249,10 +249,6 @@ class FolderThumbnailCreator:
     except Exception as e:
         print(f"저장 중 오류 발생: {e}")
         return False
-      
-      
-def create_folder_thumbnail(folder_path, output_path):
-    FolderThumbnailCreator(folder_path).create_thumbnail(output_path)
 
 if __name__ == "__main__":
     folder_path = sys.argv[1]
