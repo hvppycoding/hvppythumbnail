@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from .core import FolderThumbnailCreator
+from .corei import create_and_merge_thumbnails
 
 def main():
     parser = argparse.ArgumentParser(description='비디오 폴더 썸네일 생성기')
@@ -11,7 +12,8 @@ def main():
     parser.add_argument("--capture_height", type=int, default=480, help="캡처 이미지 높이")
     parser.add_argument("--capture_width", type=int, default=480, help="캡처 이미지 너비")
     parser.add_argument("--filename_height", type=int, default=30, help="파일 이름 높이")
-    parser.add_argument("--nstep_per_capture", type=int, default=5, help="캡처 빈도")
+    parser.add_argument("--nstep_per_capture", type=int, default=25, help="캡처 빈도")
+    parser.add_argument("--image", action="store_true", help="이미지 파일을 사용")
     
     args = parser.parse_args()
     
@@ -22,6 +24,13 @@ def main():
     
     output_path = args.output if args.output else Path.cwd() / "thumbnail.jpg"
     
+    if args.image:
+        create_and_merge_thumbnails(folder_path, output_path, 
+                                    grid_width=args.grid_width, 
+                                    grid_height=args.grid_height, 
+                                    thumbnail_width=args.capture_width, 
+                                    thumbnail_height=args.capture_height)
+        return
     try:
         c = FolderThumbnailCreator(folder_path, 
                                    grid_height=args.grid_height, 
