@@ -47,7 +47,8 @@ def create_and_merge_thumbnails(image_dir, output_filename, grid_width=4, grid_h
   for filename in random_list_dir:
     try:
       # 이미지 파일 읽기
-      img = cv2.imread(os.path.join(image_dir, filename))
+      img = Image.open(os.path.join(image_dir, filename))
+      img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR) 
       has_faces, _, img = detect_faces(img)
       if has_faces:
         img_list.insert(0, img)  # 우선순위 높음
@@ -61,6 +62,10 @@ def create_and_merge_thumbnails(image_dir, output_filename, grid_width=4, grid_h
       print(f"{filename}은 이미지 파일이 아닙니다.")
 
   img_list = img_list[:rows * cols]  # grid 크기만큼 이미지 추출
+  
+  if len(img_list) < rows * cols:
+    img_list = (img_list * (rows * cols // len(img_list) + 1))[:rows * cols]
+
 
   for i, img in enumerate(img_list):
     row = i // cols
