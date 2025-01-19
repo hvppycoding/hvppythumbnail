@@ -207,9 +207,7 @@ class FolderThumbnailCreator:
         frame = resize_image(frame, self.capture_width, self.capture_height)
         has_faces, _, frame_with_faces = detect_faces(frame)
         if has_faces:
-            print(f"Shape of frame: {frame.shape}")
-            print(f"Shape of frame_with_faces: {frame_with_faces.shape}")
-            return frame_with_faces, str(video_file), section_time
+            return frame_with_faces, video_file, section_time
     middle_time = (section_start_time + section_end_time) / 2
     video_file, section_time = self.duration_divider.get_video_file_and_section(middle_time)
     frame = self.video_capture_helper.get_frame_from_file(str(video_file), section_time)
